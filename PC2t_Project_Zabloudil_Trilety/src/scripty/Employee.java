@@ -3,7 +3,8 @@ package scripty;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class Employee implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -24,6 +25,8 @@ public abstract class Employee implements Serializable {
 
     // --- abstract contract --------------------------------------------------
 
+    public abstract void executeSkill(EmployeeDatabase db);
+
     public abstract String getGroupName();
 
     // --- collaboration management -------------------------------------------
@@ -37,6 +40,26 @@ public abstract class Employee implements Serializable {
         collaborations.removeIf(c -> c.getColleagueId() == colleagueId);
     }
 
+    // --- display ------------------------------------------------------------
+
+    public String getBasicInfo() {
+        return String.format("ID: %d | %s %s | Rok narození: %d | Skupina: %s | Počet spolupráci: %d",
+                id, firstName, lastName, birthYear, getGroupName(), collaborations.size());
+    }
+
+    public String getCollaborationStats() {
+        if (collaborations.isEmpty()) return "  Žádné spolupráce.";
+
+        Map<CollaborationLevel, Long> counts = collaborations.stream()
+                .collect(Collectors.groupingBy(Collaboration::getLevel, Collectors.counting()));
+
+        StringBuilder sb = new StringBuilder("  Statistiky spolupráce:\n");
+        for (CollaborationLevel lvl : CollaborationLevel.values()) {
+            sb.append("    ").append(lvl.getDisplayName()).append(": ")
+              .append(counts.getOrDefault(lvl, 0L)).append("\n");
+        }
+        return sb.toString().stripTrailing();
+    }
 
     // --- getters ------------------------------------------------------------
 

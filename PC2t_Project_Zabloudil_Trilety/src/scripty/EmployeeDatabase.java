@@ -1,6 +1,7 @@
 package scripty;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class EmployeeDatabase {
     private final Map<Integer, Employee> employees = new HashMap<>();
@@ -17,6 +18,14 @@ public class EmployeeDatabase {
         };
         employees.put(id, emp);
         return emp;
+    }
+
+    /** Used when loading employees from SQL or file (ID already assigned). */
+    public void addEmployee(Employee emp) {
+        employees.put(emp.getId(), emp);
+        if (emp.getId() >= nextId) {
+            nextId = emp.getId() + 1;
+        }
     }
 
     // --- collaboration ------------------------------------------------------
@@ -39,6 +48,43 @@ public class EmployeeDatabase {
             emp.removeCollaboration(id);
         }
         return true;
+    }
+
+    // --- lookup -------------------------------------------------------------
+
+    public Employee findById(int id) {
+        return employees.get(id);
+    }
+
+    public List<Employee> getAllEmployees() {
+        return new ArrayList<>(employees.values());
+    }
+
+    public List<Employee> getByGroup(Class<? extends Employee> type) {
+        return employees.values().stream()
+                .filter(type::isInstance)
+                .sorted(Comparator.comparing(Employee::getLastName)
+                        .thenComparing(Employee::getFirstName))
+                .collect(Collectors.toList());
+    }
+
+    // --- statistics ---------------------------------------------------------
+
+    public CollaborationLevel getDominantQuality() {
+        Map<CollaborationLevel, Long> counts = employees.values().stream()
+                .flatMap(e -> e.getCollaborations().stream())
+                .collect(Collectors.groupingBy(Collaboration::getLevel, Collectors.counting()));
+
+        return counts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    public Employee getMostConnected() {
+        return employees.values().stream()
+                .max(Comparator.comparingInt(e -> e.getCollaborations().size()))
+                .orElse(null);
     }
 
     // --- meta ---------------------------------------------------------------
